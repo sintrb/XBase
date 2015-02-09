@@ -1,2 +1,2 @@
 # XBase
-A RESTful Database Service
+A Key-Value Database Service
