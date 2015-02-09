@@ -45,13 +45,13 @@ class KVClientCheat:
         return {
                 'count': len(self.cache),
                 'keys': [k for k in self.cache.keys()],
-                'outbytes': 126,
-                'total_size': 3,
-                'inbytes': 180,
-                'set_count': 60,
-                'delete_count': 21,
-                'total_count': 1,
-                'get_count': 42
+                'outbytes': 0,
+                'total_size': 0,
+                'inbytes': 0,
+                'set_count': 0,
+                'delete_count': 0,
+                'total_count': 0,
+                'get_count': 0
                 }
 
     instance = None
