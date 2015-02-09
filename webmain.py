@@ -29,6 +29,7 @@ class DBHandler(BaseHandler):
     """docstring for DBHandler"""
     def get(self, domain, keypath=None):
         key = '%s:%s'%(domain, keypath)
+        key = key.encode('utf-8')
         if key:
             val = self.kv.get(key)
             if val:
@@ -39,11 +40,13 @@ class DBHandler(BaseHandler):
         if not keypath:
             keypath = uuid()
         key = '%s:%s'%(domain, keypath)
+        key = key.encode('utf-8')
         self.kv.set(key, self.request.body)
     def put(self, domain, keypath=None):
-        self.port(domain, keypath)
+        self.post(domain, keypath)
     def delete(self, domain, keypath=None):
         key = '%s:%s'%(domain, keypath)
+        key = key.encode('utf-8')
         self.kv.delete(key)
         
 class MainHandler(BaseHandler):
@@ -54,12 +57,15 @@ class MainHandler(BaseHandler):
 class StcHandler(BaseHandler):
     def get(self):
         import json
+        import cgi
         self.write(json.dumps(self.kv.get_info()))
+        # self.write(r'<pre>%s</pre>'%cgi.escape(str(self.kv.__module__)))
+        # self.write('d')
 
 
 url = [
     (r"/", MainHandler),
-    (r"/~stc", StcHandler),
+    (r"/stc", StcHandler),
     (r"/([a-zA-Z0-9\-_\.])+/([a-zA-Z0-9\-_\./]*)", DBHandler),
 ]
 
