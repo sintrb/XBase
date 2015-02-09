@@ -1,14 +1,19 @@
 # -*- coding: UTF-8 -*
 '''
-Created on 2015年1月18日
+Created on 2015年2月09日
 
 @author: RobinTang
 '''
 import tornado.web
-
+import json
+import time
+import os
 def md5(v):
     import hashlib
     return hashlib.md5(v).hexdigest()
+
+def uuid():
+    return md5(str(time.time()))
 
 class BaseHandler(tornado.web.RequestHandler):
     def __init__(self, application, request, **kwargs):
@@ -22,7 +27,24 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class DBHandler(BaseHandler):
     """docstring for DBHandler"""
-    pass
+    def get(self, domain, keypath=None):
+        key = '%s:%s'%(domain, keypath)
+        if key:
+            val = self.kv.get(key)
+            if val:
+                self.write(val)
+        else:
+            self.set_status(404)
+    def post(self, domain, keypath=None):
+        if not keypath:
+            keypath = uuid()
+        key = '%s:%s'%(domain, keypath)
+        self.kv.set(key, self.request.body)
+    def put(self, domain, keypath=None):
+        self.port(domain, keypath)
+    def delete(self, domain, keypath=None):
+        key = '%s:%s'%(domain, keypath)
+        self.kv.delete(key)
         
 class MainHandler(BaseHandler):
     def get(self):
@@ -38,6 +60,7 @@ class StcHandler(BaseHandler):
 url = [
     (r"/", MainHandler),
     (r"/~stc", StcHandler),
+    (r"/([a-zA-Z0-9\-_\.])+/([a-zA-Z0-9\-_\./]*)", DBHandler),
 ]
 
 import os
