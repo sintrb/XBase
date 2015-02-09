@@ -1,6 +1,6 @@
-name: urlimg
+name: XBase
 version: 1
 
-libraries:
-- name: PIL
-  version: "1.1.7"
+# libraries:
+# - name: PIL
+#   version: "1.1.7"
