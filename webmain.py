@@ -30,24 +30,29 @@ class DBHandler(BaseHandler):
     def get(self, domain, keypath=None):
         key = '%s:%s'%(domain, keypath)
         key = key.encode('utf-8')
-        if key:
+        if keypath:
             val = self.kv.get(key)
             if val:
                 self.write(val)
         else:
-            self.set_status(404)
+            key = '%s:'%domain #.encode('utf-8')
+            key = key.encode('utf-8')
+            l = len(key)
+            self.write(';'.join([k[l:] for k in self.kv.getkeys_by_prefix(key)]))
     def post(self, domain, keypath=None):
         if not keypath:
             keypath = uuid()
         key = '%s:%s'%(domain, keypath)
         key = key.encode('utf-8')
         self.kv.set(key, self.request.body)
+        self.write(key)
     def put(self, domain, keypath=None):
         self.post(domain, keypath)
     def delete(self, domain, keypath=None):
         key = '%s:%s'%(domain, keypath)
         key = key.encode('utf-8')
         self.kv.delete(key)
+        self.write(key)
         
 class MainHandler(BaseHandler):
     def get(self):
@@ -56,9 +61,9 @@ class MainHandler(BaseHandler):
 
 class StcHandler(BaseHandler):
     def get(self):
-        import json
-        import cgi
-        self.write(json.dumps(self.kv.get_info()))
+        info = self.kv.get_info()
+        info['keys'] = [k for k in self.kv.getkeys_by_prefix('')]
+        self.write(json.dumps(info))
         # self.write(r'<pre>%s</pre>'%cgi.escape(str(self.kv.__module__)))
         # self.write('d')
 
@@ -66,7 +71,7 @@ class StcHandler(BaseHandler):
 url = [
     (r"/", MainHandler),
     (r"/stc", StcHandler),
-    (r"/([a-zA-Z0-9\-_\.])+/([a-zA-Z0-9\-_\./]*)", DBHandler),
+    (r"/([a-zA-Z0-9\-_\.]+)[/:]([a-zA-Z0-9\-_\.]*)", DBHandler),
 ]
 
 import os
