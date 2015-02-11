@@ -27,33 +27,50 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class DBHandler(BaseHandler):
     """docstring for DBHandler"""
-    def get(self, domain, keypath=None):
-        key = '%s:%s'%(domain, keypath)
-        key = key.encode('utf-8')
+    def initialize(self):
+        # Allow Cross Domain AJAX
+        self.set_header('Access-Control-Allow-Origin', '*')
+    def get(self, domain, split=None, keypath=None):
         if keypath:
+            key = '%s:%s'%(domain, keypath)
+            key = key.encode('utf-8')
             val = self.kv.get(key)
             if val:
                 self.write(val)
         else:
-            key = '%s:'%domain #.encode('utf-8')
+            key = '%s:'%domain
             key = key.encode('utf-8')
             l = len(key)
-            self.write(';'.join([k[l:] for k in self.kv.getkeys_by_prefix(key)]))
-    def post(self, domain, keypath=None):
+            if split:
+                a = [k[l:] for k in self.kv.getkeys_by_prefix(key)]
+                self.write(json.dumps(a))
+            else:
+                # self.write(';'.join())
+                d = dict([(k[l:], v) for k,v in self.kv.get_by_prefix(key)])
+                self.write(json.dumps(d))
+    def post(self, domain, split=None, keypath=None):
         if not keypath:
             keypath = uuid()
         key = '%s:%s'%(domain, keypath)
         key = key.encode('utf-8')
         self.kv.set(key, self.request.body)
         self.write(key)
-    def put(self, domain, keypath=None):
-        self.post(domain, keypath)
-    def delete(self, domain, keypath=None):
-        key = '%s:%s'%(domain, keypath)
-        key = key.encode('utf-8')
-        self.kv.delete(key)
-        self.write(key)
-        
+    def put(self, domain, split=None, keypath=None):
+        self.post(domain, split, keypath)
+    def delete(self, domain, split=None, keypath=None):
+        if keypath:
+            key = '%s:%s'%(domain, keypath)
+            key = key.encode('utf-8')
+            self.kv.delete(key)
+            self.write(key)
+        else:
+            key = '%s:'%domain
+            key = key.encode('utf-8')
+            count = 0
+            for k in self.kv.getkeys_by_prefix(key):
+                self.kv.delete(k)
+                count += 1
+            self.write(str(count))
 class MainHandler(BaseHandler):
     def get(self):
         import time
@@ -71,7 +88,7 @@ class StcHandler(BaseHandler):
 url = [
     (r"/", MainHandler),
     (r"/stc", StcHandler),
-    (r"/([a-zA-Z0-9\-_\.]+)[/:]([a-zA-Z0-9\-_\.]*)", DBHandler),
+    (r"/([a-zA-Z0-9\-_\.]+)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", DBHandler),
 ]
 
 import os
