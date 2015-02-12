@@ -5,8 +5,8 @@ Created on 2015年2月09日
 '''
 
 class KVClientCheat:
-    def __init__(self):
-        self.cache = {}
+    def __init__(self, dic={}):
+        self.cache = dic
     def set(self, key, val, min_compress_len=0):
         '''设置key的值为val'''
         self.cache[key] = val
@@ -56,9 +56,9 @@ class KVClientCheat:
 
     instance = None
     @staticmethod
-    def get_instance():
+    def get_instance(dic={}):
         if not KVClientCheat.instance:
-            KVClientCheat.instance = KVClientCheat()
+            KVClientCheat.instance = KVClientCheat(dic)
         return KVClientCheat.instance
 
 
