@@ -4,83 +4,84 @@ var XBase = angular.module('XBase', ['ngRoute', 'ngCookies', 'ui.bootstrap']);
 // , ['ngRoute', 'ui.bootstrap']
 
 
-function initScope($scope){
-
+function initScope($scope, $http){
+	$scope.closeAlert = function(){
+		$scope.info = null;
+	};
+	$scope.post = function(url ,data, succ, error){
+		$scope.doing = true;
+		$scope.info = null;
+		$http.post(url, data)
+		.success(function(res){
+			$scope.doing = false;
+			if(res.succ){
+				if(succ)
+					succ(res);
+			}
+			else{
+				$scope.info = {
+					type:'error',
+					msg:res.msg
+				};
+			}
+		})
+		.error(function(){
+			$scope.doing = false;
+			$scope.info = {
+				type:'error',
+				msg:'网络错误'
+			}
+			if(error)
+				error();
+		});
+	};
 }
 
 function Index($scope, $http, $location, $cookies){
+	initScope($scope, $http);
 	$scope.$location = $location;
-	if(!$cookies.username){
+	if(!$cookies.token){
 		$location.path('/login');
 	};
 	$scope.logout = function(){
-		// $cookies.username = '';
+		delete $cookies.token;
 		$location.path('/login');
 	};
 }
 
-function Login($scope, $http, $location){
+function Login($scope, $http, $location, $timeout){
+	initScope($scope, $http);
 	$scope.$location = $location;
-	$scope.closeAlert = function(){
-		$scope.info = null;
-	}
 	$scope.login = function(){
-		$scope.doing = true;
-		$http.post('/.login', {
+		$scope.post('/.login', {
 			username: $scope.username,
 			password: $scope.password
-		})
-		.success(function(res){
-			$scope.doing = false;
-			if(res.succ){
-				$location.path('/');
+			},
+			function(res){
+				$scope.info = "登录成功";
+				$timeout(function(){
+					$location.path('/');
+				}, 500);
 			}
-			else{
-				$scope.info = {
-					type:'error',
-					msg:res.msg
-				};
-			}
-			console.log(res);
-		})
-		.error(function(){
-			$scope.doing = false;
-			$scope.info = {
-				type:'error',
-				msg:'网络错误'
-			}
-		});
+		);
 	}
 }
 
-function Sign($scope, $http, $location){
+function Sign($scope, $http, $location, $timeout){
+	initScope($scope, $http);
 	$scope.$location = $location;
 	$scope.sigin = function(){
-		$scope.doing = true;
-		$http.post('/.sigin', {
+		$scope.post('/.sigin', {
 			username: $scope.username,
 			password: $scope.password
-		})
-		.success(function(res){
-			$scope.doing = false;
-			if(res.succ){
-				$location.path('/');
+			},
+			function(res){
+				$scope.info = "注册成功";
+				$timeout(function(){
+					$location.path('/');
+				}, 500);
 			}
-			else{
-				$scope.info = {
-					type:'error',
-					msg:res.msg
-				};
-			}
-			console.log(res);
-		})
-		.error(function(){
-			$scope.doing = false;
-			$scope.info = {
-				type:'error',
-				msg:'网络错误'
-			}
-		});
+		);
 	}
 }
 

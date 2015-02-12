@@ -1,2 +1,2 @@
-<img ng-if="doing" src="/static/imgs/loading.gif" style="width:25px; height:25px;" />
-<alert style="margin-top:5px;" ng-if="info" type="{{info.type}}" close="closeAlert()">{{info.msg}}</alert>
+<progressbar ng-if="doing" class="progress-striped active" max="100" value="100" type="warning" style="margin-top:5px;"></progressbar>
+<alert style="margin-top:5px;" ng-if="info" type="{{info.type || 'info'}}" close="closeAlert()">{{info.msg || info}}</alert>
