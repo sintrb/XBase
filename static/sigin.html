@@ -1,0 +1,17 @@
+<div class="smalform">
+	<h4>用户注册</h4>
+	<div class="form-group">
+		<label>用户名</label>
+		<input type="text" ng-model="username" class="form-control" style="height:30px;">
+		<label>登录密码</label>
+		<input type="password" ng-model="password" class="form-control" style="height:30px;">
+		<label>重复密码</label>
+		<input type="password" ng-model="repassword" class="form-control" style="height:30px;">
+		<div style="float:right; display:inline-block;">
+			<button class="btn btn-info" ng-click="sigin()">注册</button>
+			<button class="btn btn-default" ng-click="$location.path('/')">返回</button>
+		</div>
+		<div style="clear:both" />
+		<div ng-include="'/static/info.html'"></div>
+	</div>
+</div>
