@@ -12,7 +12,11 @@ function Index($scope, $http, $location, $cookies){
 	$scope.$location = $location;
 	if(!$cookies.username){
 		$location.path('/login');
-	}
+	};
+	$scope.logout = function(){
+		// $cookies.username = '';
+		$location.path('/login');
+	};
 }
 
 function Login($scope, $http, $location){
