@@ -23,9 +23,27 @@ class BaseHandler(tornado.web.RequestHandler):
             self.kv = sae.kvdb.KVClient()
         except:
             import saekvdb
-            self.kv = saekvdb.KVClientCheat.get_instance()
+            dic = {}
+            try:
+                import pickle
+                with open('kvdb', 'r') as f:
+                    dic = pickle.load(f)
+            except:
+                print 'load kvdb failed'
+                pass
+            self.kv = saekvdb.KVClientCheat.get_instance(dic)
 
-class DBHandler(BaseHandler):
+class SaveHandle(BaseHandler):
+    """docstring for SaveHandle"""
+    def savekvdb(self):
+        import saekvdb
+        if isinstance(self.kv, saekvdb.KVClientCheat):
+            import pickle
+            print 'save kvdb'
+            with open('kvdb', 'w') as f:
+                pickle.dump(self.kv.cache, f)
+
+class DBHandler(SaveHandle):
     """docstring for DBHandler"""
     def initialize(self):
         # Allow Cross Domain AJAX
@@ -55,6 +73,7 @@ class DBHandler(BaseHandler):
         key = key.encode('utf-8')
         self.kv.set(key, self.request.body)
         self.write(key)
+        self.savekvdb()
     def put(self, domain, split=None, keypath=None):
         self.post(domain, split, keypath)
     def delete(self, domain, split=None, keypath=None):
@@ -71,10 +90,37 @@ class DBHandler(BaseHandler):
                 self.kv.delete(k)
                 count += 1
             self.write(str(count))
-class MainHandler(BaseHandler):
+        self.savekvdb()
+
+class LoginHandler(SaveHandle):
+    def post(self):
+        d = json.loads(self.request.body)
+        username = d['username']
+        password = d['password']
+        kvd = self.kv.get(username)
+        print kvd
+        if kvd and kvd['password'] == d['password']:
+            res = {'succ':True}
+            self.set_cookie('username', username)
+        else:
+            res = {'succ':False, 'msg':'用户名或密码不正确'}
+        self.write(json.dumps(res))
+
+class SiginHandler(SaveHandle):
+    def post(self):
+        d = json.loads(self.request.body)
+        username = d['username']
+        password = d['password']
+        if username and not self.kv.get(username):
+            res = {'succ':True}
+            self.kv.set(username, d)
+        else:
+            res = {'succ':False, 'msg':'已经存在该用户'}
+        self.write(json.dumps(res))
+
+class IndexHandler(BaseHandler):
     def get(self):
-        import time
-        self.write("Hello, world %d" % time.time())
+        self.render('index.html')
 
 class StcHandler(BaseHandler):
     def get(self):
@@ -86,8 +132,10 @@ class StcHandler(BaseHandler):
 
 
 url = [
-    (r"/", MainHandler),
+    (r"/", IndexHandler),
     (r"/stc", StcHandler),
+    (r"/.login", LoginHandler),
+    (r"/.sigin", SiginHandler),
     (r"/([a-zA-Z0-9\-_\.]+)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", DBHandler),
 ]
 
@@ -95,10 +143,8 @@ import os
 settings = {
     "debug": True,
     "static_path" : os.path.join(os.path.dirname(__file__), "static"),
-    "template_path" : os.path.join(os.path.dirname(__file__), "templates"),
+    "template_path" : os.path.join(os.path.dirname(__file__), "static"),
 }
-
-
 
 if __name__ == "__main__":
     import sys
