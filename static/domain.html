@@ -1,0 +1,13 @@
+<div class="smalform">
+	<h4><a href="#/">XBase</a>/{{domain}}</h4>
+	<div class="form-group">
+		<table>
+			<tr ng-repeat="kv in keyvals">
+				<td>{{kv.key}}</td>
+				<td><a href="#/{{domain}}/{{kv.key}}">{{kv.val}}</a> <span class="glyphicon glyphicon-remove"  style="cursor: pointer;" ng-click="delete(domain, kv.key)"/> </td>
+			</tr>
+		</table>
+		<div style="clear:both" />
+		<div ng-include="'/static/info.html'"></div>
+	</div>
+</div>
