@@ -1,3 +1,7 @@
 <div class="smalform">
-	<h2>Main~~~<span class="glyphicon glyphicon-off"  style="cursor: pointer;" ng-click="logout()"/> </h2>
+	<h4>XBase<span class="glyphicon glyphicon-off"  style="cursor: pointer; float: right;" ng-click="logout()"/> </h4>
+	<ul>
+		<li ng-repeat="a in apps"><a href="#/{{a.name}}">{{a.name}}</a></li>
+	</ul>
+
 </div>

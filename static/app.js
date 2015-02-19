@@ -1,5 +1,6 @@
 var XBase = angular.module('XBase', ['ngRoute', 'ngCookies', 'ui.bootstrap']);
 
+var resturl = '/rest/';
 
 // , ['ngRoute', 'ui.bootstrap']
 
@@ -8,15 +9,17 @@ function initScope($scope, $http){
 	$scope.closeAlert = function(){
 		$scope.info = null;
 	};
-	$scope.post = function(url ,data, succ, error){
+	$scope.ajax = function(url ,data, succ, error){
 		$scope.doing = true;
 		$scope.info = null;
-		$http.post(url, data)
-		.success(function(res){
+		var ajax = data? $http.post(url, data): $http.get(url);
+		ajax.success(function(res){
 			$scope.doing = false;
-			if(res.succ){
+			if(res.succ || typeof(res.succ)=="undefined"){
 				if(succ)
 					succ(res);
+			else if(error)
+				error(res.msg);
 			}
 			else{
 				$scope.info = {
@@ -32,7 +35,7 @@ function initScope($scope, $http){
 				msg:'网络错误'
 			}
 			if(error)
-				error();
+				error('网络错误');
 		});
 	};
 }
@@ -41,19 +44,91 @@ function Index($scope, $http, $location, $cookies){
 	initScope($scope, $http);
 	$scope.$location = $location;
 	if(!$cookies.token){
-		$location.path('/login');
-	};
+		$location.path('/.login');
+	}
+	else{
+		$scope.ajax(resturl, null,
+			function(res){
+				$scope.apps = res.apps;
+			},
+			function(err){
+				delete $cookies.token;
+				$location.path('/.login');
+			});
+	}
+
 	$scope.logout = function(){
 		delete $cookies.token;
-		$location.path('/login');
+		$location.path('/.login');
 	};
 }
 
-function Login($scope, $http, $location, $timeout){
+function Domain($scope, $http, $location, $cookies, $routeParams){
 	initScope($scope, $http);
 	$scope.$location = $location;
+	$scope.domain = $routeParams.domain;
+
+	$scope.ajax(resturl+$scope.domain+"/", null, 
+		function(res){
+			var keys = [];
+			for(var k in res){
+				keys.push(k);
+			}
+			keys.sort();
+			$scope.keyvals = [];
+			for (var i = 0; i < keys.length; i++) {
+				$scope.keyvals.push({
+					key:keys[i],
+					val:res[keys[i]]
+				})
+			};
+		}
+	);
+	$scope.delete = function(domain, key){
+		console.log(domain + " " + key);
+	};
+}
+
+function KeyVal($scope, $http, $location, $cookies, $routeParams, $timeout){
+	initScope($scope, $http);
+	$scope.$location = $location;
+	$scope.domain = $routeParams.domain;
+	$scope.key = $routeParams.key;
+	$scope.keyvalurl = function(){
+		return resturl+$scope.domain+"/"+$scope.key;
+	};
+	$scope.ajax(resturl+$scope.domain+"/"+$scope.key, null, 
+		function(res){
+			$scope.value = res;
+		}
+	);
+
+	$scope.save = function(){
+		$scope.ajax($scope.keyvalurl(), $scope.value, function(){
+			$scope.info = "保存成功";
+			$timeout(function(){
+				var u = '/'+$scope.domain+"/"+$scope.key;
+				if($location.path() != u){
+					$location.path(u);
+				}
+				else{
+					$scope.info = null;
+				}
+			}, 500);
+		});
+	};
+}
+
+function Login($scope, $http, $location, $cookies, $timeout){
+	initScope($scope, $http);
+	$scope.$location = $location;
+	if($cookies.token){
+		// $timeout(function(){
+			$location.path('/');
+		// }, 500);
+	}
 	$scope.login = function(){
-		$scope.post('/.login', {
+		$scope.ajax('/.login', {
 			username: $scope.username,
 			password: $scope.password
 			},
@@ -70,8 +145,15 @@ function Login($scope, $http, $location, $timeout){
 function Sign($scope, $http, $location, $timeout){
 	initScope($scope, $http);
 	$scope.$location = $location;
+	if ($scope.password != $scope.repassword){
+			$scope.info = {
+				type:'error',
+				msg:'两次密码不相等'
+			}
+		return false;
+	}
 	$scope.sigin = function(){
-		$scope.post('/.sigin', {
+		$scope.ajax('/.sigin', {
 			username: $scope.username,
 			password: $scope.password
 			},
@@ -91,13 +173,21 @@ function routeConfig($routeProvider) {
 			controller: Index,
 			templateUrl: '/static/main.html'
 		})
-		.when('/login', {
+		.when('/.login', {
 			controller: Login,
 			templateUrl: '/static/login.html'
 		})
-		.when('/sigin', {
+		.when('/.sigin', {
 			controller: Sign,
 			templateUrl: '/static/sigin.html'
+		})
+		.when('/:domain', {
+			controller: Domain,
+			templateUrl: '/static/domain.html'
+		})
+		.when('/:domain/:key', {
+			controller: KeyVal,
+			templateUrl: '/static/keyval.html'
 		})
 		.otherwise({
 			redirectTo: '/'
