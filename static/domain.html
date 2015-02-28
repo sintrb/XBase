@@ -4,7 +4,21 @@
 		<span class="glyphicon glyphicon-plus"  style="color: #279B00; margin-right:5px; cursor: pointer; float: right;" ng-click="add()" title="添加值"/>
 	</h4>
 	<div class="form-group">
-		<table style="width: 100%;">
+		<center ng-if="!keyvals">
+			正在努力加载中...
+		</center>		
+		<center ng-if="keyvals.length==0">
+			没有数据,请先添加!
+		</center>
+		<table style="width: 100%;" ng-if="keyvals && keyvals.length>0">
+			<tr>
+				<th>
+					键
+				</th>
+				<th>
+					值
+				</th>
+			</tr>
 			<tr ng-repeat="kv in keyvals">
 				<td><a href="#/{{domain}}/{{kv.key}}">{{kv.key}}</a></td>
 				<td><a href="#/{{domain}}/{{kv.key}}">{{kv.val}}</a> <span class="glyphicon glyphicon-trash"  style="cursor: pointer; float: right;" ng-click="delete(kv)"/> </td>

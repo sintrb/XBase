@@ -4,6 +4,12 @@
 		<span class="glyphicon glyphicon-plus"  style="color: #279B00; margin-right:5px; cursor: pointer; float: right;" ng-click="add()" title="添加应用"/>
 	</h4>
 	<div class="form-group">
+		<center ng-if="!apps">
+			正在努力加载中...
+		</center>		
+		<center ng-if="apps.length==0">
+			没有应用,请先添加!
+		</center>
 		<ul style="list-style: none;padding-left: 0px;margin-left: 0;">
 			<li ng-repeat="a in apps">
 				<a href="#/{{a.name}}">{{a.name}}</a>

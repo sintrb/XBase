@@ -122,11 +122,13 @@ function Index($scope, $http, $location, $cookies, $timeout){
 		$location.path('/.login');
 	};
 
+	$scope.apptemp = 'app';
 	$scope.add = function(){
-		var name = prompt("输入应用名称","app");
+		var name = prompt("输入应用名称", $scope.apptemp);
 		var has = false;
 		if(!name)
 			return;
+		$scope.apptemp = name;
 		$.each($scope.apps, function(index, val) {
 			if(val.name == name){
 				has = true;
@@ -162,7 +164,7 @@ function Index($scope, $http, $location, $cookies, $timeout){
 	}
 
 	$scope.delete = function(app){
-		if(confirm("确定删除["+app+"]")){
+		if(confirm("确定删除["+app.name+"]")){
 			$scope.ajax(
 				{
 					url:resturl+app.name+"/",
