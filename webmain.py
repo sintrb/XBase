@@ -277,7 +277,7 @@ url = [
     (r"/.login", LoginHandler),
     (r"/.sigin", SiginHandler),
     # (r"/([a-zA-Z0-9\-_\.]+)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", DBHandler),
-    (r"/api/([a-zA-Z0-9\-_%]*)([/:]{0,1})([a-zA-Z0-9\-_\.%]*)", UserDBHandler),
+    (r"/api/([a-zA-Z0-9\-_%\.]*)([/:]{0,1})([a-zA-Z0-9\-_\.%]*)", UserDBHandler),
     (r"/([a-zA-Z0-9\-_%]*)([/:]{0,1})([a-zA-Z0-9\-_\.%]*)", UserDBHandler),
 ]
 
