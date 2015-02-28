@@ -29,7 +29,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 with open('kvdb', 'r') as f:
                     dic = pickle.load(f)
             except:
-                print 'load kvdb failed'
+                # print 'load kvdb failed'
                 pass
             self.kv = saekvdb.KVClientCheat.get_instance(dic)
         # print self.kv.get_info()
@@ -43,80 +43,45 @@ class SaveHandler(BaseHandler):
         import saekvdb
         if isinstance(self.kv, saekvdb.KVClientCheat):
             import pickle
-            print 'save kvdb'
+            # print 'save kvdb'
             with open('kvdb', 'w') as f:
                 pickle.dump(self.kv.cache, f)
 
 class AuthHandler(SaveHandler):
+    def authUserPass(self, username, password):
+        kvd = self.kv.get(username)
+        if kvd and kvd['password'] == password:
+            self.username = username
+            self.userkvd = kvd
+            self.authed = username
+            return True
+        else:
+            return False
     def prepare(self):
         SaveHandler.prepare(self)
         self.username = None
         self.userkvd = None
+        self.authed = None
+
         try:
             import urllib
             token = self.get_cookie('token')
             if not token:
                 token = self.request.headers['Authorization'].split(' ')[1]
             username, password = urllib.base64.b64decode(token).split(':')
-            kvd = self.kv.get(username)
-            if kvd and kvd['password'] == password:
-                self.username = username
-                self.userkvd = kvd
+            self.authUserPass(username, password)
         except:
              pass
-        # print self.username
+
+        try:
+            self.username = self.get_argument('u').encode('utf-8')
+            password = self.get_argument('p')
+            self.authUserPass(self.username, password)
+        except:
+            pass
+        # print 'un:%s'%self.username
     def save_userkvd(self):
         self.kv.set(self.username.encode('utf-8'), self.userkvd)
-        self.savekvdb()
-class DBHandler(AuthHandler):
-    """docstring for DBHandler"""
-    def initialize(self):
-        AuthHandler.initialize(self)
-        # Allow Cross Domain AJAX
-        self.set_header('Access-Control-Allow-Origin', '*')
-    def get(self, domain, split=None, keypath=None):
-        # print self.username
-        if keypath:
-            key = '%s:%s'%(domain, keypath)
-            key = key.encode('utf-8')
-            val = self.kv.get(key)
-            if val:
-                self.write(val)
-        else:
-            key = '%s:'%domain
-            key = key.encode('utf-8')
-            l = len(key)
-            if split:
-                a = [k[l:] for k in self.kv.getkeys_by_prefix(key)]
-                self.write(json.dumps(a))
-            else:
-                # self.write(';'.join())
-                d = dict([(k[l:], v) for k,v in self.kv.get_by_prefix(key)])
-                self.write(json.dumps(d))
-    def post(self, domain, split=None, keypath=None):
-        if not keypath:
-            keypath = uuid()
-        key = '%s:%s'%(domain, keypath)
-        key = key.encode('utf-8')
-        self.kv.set(key, self.request.body)
-        self.write(key)
-        self.savekvdb()
-    def put(self, domain, split=None, keypath=None):
-        self.post(domain, split, keypath)
-    def delete(self, domain, split=None, keypath=None):
-        if keypath:
-            key = '%s:%s'%(domain, keypath)
-            key = key.encode('utf-8')
-            self.kv.delete(key)
-            self.write(key)
-        else:
-            key = '%s:'%domain
-            key = key.encode('utf-8')
-            count = 0
-            for k in self.kv.getkeys_by_prefix(key):
-                self.kv.delete(k)
-                count += 1
-            self.write(str(count))
         self.savekvdb()
 
 class LoginHandler(SaveHandler):
@@ -146,6 +111,8 @@ class SiginHandler(SaveHandler):
             res = {'succ':False, 'msg':'用户名和密码不能为空'}
         elif not username:
             res = {'succ':False, 'msg':'用户名不能为空'}
+        elif username in ['trb', 'rest', 'api'] or username[0] in './\~':
+            res = {'succ':False, 'msg':'用户名受限'}
         elif not password:
             res = {'succ':False, 'msg':'密码不能为空'}
         elif self.kv.get(username):
@@ -188,7 +155,7 @@ class UserDBHandler(AuthHandler):
         }
         self.resjson(res)
     def get_userkey(self):
-        return self.username
+        return self.authed or self.username
     def get_appkey(self, app):
         return '%s@%s'%(self.get_userkey(), app)
     def get_storagekey(self, app, key):
@@ -199,6 +166,9 @@ class UserDBHandler(AuthHandler):
             app = app.encode('utf-8')
         if key:
             key = key.encode('utf-8')
+        # print self.get_argument('username')
+        self.authed = None
+        # print self.username
         if self.username:
             if app:
                 if key:
@@ -220,14 +190,17 @@ class UserDBHandler(AuthHandler):
                     'apps':[self.kv.get(self.get_appkey(a)) for a in self.userkvd['apps']]
                     })
         else:
-            self.resnoauth()
+            self.resjson({
+                'succ':False,
+                'msg':'未指用户'
+                })
 
     def post(self, app, split=None, key=None):
         if app:
             app = app.encode('utf-8')
         if key:
             key = key.encode('utf-8')
-        if self.username:
+        if self.authed:
             if app:
                 if not app in self.userkvd['apps']:
                     self.userkvd['apps'].append(app)
@@ -249,7 +222,7 @@ class UserDBHandler(AuthHandler):
                 else:
                     self.resjson({
                         'succ':True,
-                        'app':app
+                        'app':self.kv.get(self.get_appkey(app))
                         })
             else:
                 self.resjson({
@@ -267,7 +240,7 @@ class UserDBHandler(AuthHandler):
         if key:
             key = key.encode('utf-8')
         count = 0
-        if self.username:
+        if self.authed:
             if app:
                 if key:
                     skey = self.get_storagekey(app, key)
@@ -304,7 +277,8 @@ url = [
     (r"/.login", LoginHandler),
     (r"/.sigin", SiginHandler),
     # (r"/([a-zA-Z0-9\-_\.]+)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", DBHandler),
-    (r"/rest/([a-zA-Z0-9\-_]*)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", UserDBHandler),
+    (r"/api/([a-zA-Z0-9\-_%]*)([/:]{0,1})([a-zA-Z0-9\-_\.%]*)", UserDBHandler),
+    (r"/([a-zA-Z0-9\-_%]*)([/:]{0,1})([a-zA-Z0-9\-_\.%]*)", UserDBHandler),
 ]
 
 import os
