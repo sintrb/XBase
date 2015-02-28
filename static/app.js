@@ -186,7 +186,7 @@ function Domain($scope, $http, $location, $cookies, $routeParams, $timeout){
 	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
 	$scope.domain = $routeParams.domain;
-
+	$scope.showwithtime = false;
 	$scope.ajax(resturl+$scope.domain+"/", 
 		function(res){
 			var keys = [];

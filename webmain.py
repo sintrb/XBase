@@ -87,8 +87,8 @@ class AuthHandler(SaveHandler):
 class LoginHandler(SaveHandler):
     def post(self):
         d = json.loads(self.request.body)
-        username = d.get('username')
-        password = d.get('password')
+        username = d.get('username').encode('utf-8')
+        password = d.get('password').encode('utf-8')
         if username and password:
             kvd = self.kv.get(username)
             if kvd and kvd['password'] == d['password']:
@@ -105,8 +105,8 @@ class LoginHandler(SaveHandler):
 class SiginHandler(SaveHandler):
     def post(self):
         d = json.loads(self.request.body)
-        username = d.get('username')
-        password = d.get('password')
+        username = d.get('username').encode('utf-8')
+        password = d.get('password').encode('utf-8')
         if not username and not password:
             res = {'succ':False, 'msg':'用户名和密码不能为空'}
         elif not username:
@@ -119,7 +119,7 @@ class SiginHandler(SaveHandler):
             res = {'succ':False, 'msg':'已经存在该用户'}
         else:
             res = {'succ':True}
-            self.kv.set(username.encode('utf-8'), {
+            self.kv.set(username, {
                 'username':username,
                 'password':password,
                 'apps':[]
@@ -132,9 +132,9 @@ class IndexHandler(BaseHandler):
         self.render('index.html')
 
 class StcHandler(BaseHandler):
-    def get(self):
+    def get(self, username=''):
         info = self.kv.get_info()
-        info['keys'] = ['%s: %s'%(k,self.kv.get(k)) for k in self.kv.getkeys_by_prefix('')]
+        info['keys'] = ['%s: %s'%(k,self.kv.get(k)) for k in self.kv.getkeys_by_prefix(username.encode('utf-8'))]
         self.write(json.dumps(info))
         # self.write(r'<pre>%s</pre>'%cgi.escape(str(self.kv.__module__)))
         # self.write('d')
@@ -273,7 +273,7 @@ class UserDBHandler(AuthHandler):
             self.resnoauth()
 url = [
     (r"/", IndexHandler),
-    (r"/.stc", StcHandler),
+    (r"/.stc/([a-zA-Z0-9]*)", StcHandler),
     (r"/.login", LoginHandler),
     (r"/.sigin", SiginHandler),
     # (r"/([a-zA-Z0-9\-_\.]+)([/:]{0,1})([a-zA-Z0-9\-_\.]*)", DBHandler),
