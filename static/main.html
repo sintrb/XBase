@@ -1,13 +1,16 @@
 <div class="smalform">
-	<h4>XBase
+	<h4>应用列表
 		<span class="glyphicon glyphicon-off"  style="color: red; cursor: pointer; float: right;" ng-click="logout()" title="注销登录"/> 
 		<span class="glyphicon glyphicon-plus"  style="color: #279B00; margin-right:5px; cursor: pointer; float: right;" ng-click="add()" title="添加应用"/>
 	</h4>
-	<ul>
-		<li ng-repeat="a in apps">
-			<a href="#/{{a.name}}">{{a.name}}</a>
-			<span class="glyphicon glyphicon-trash"  style="cursor: pointer;" ng-click="delete(a.name)" title="删除应用"/>
-		</li>
-	</ul>
-
+	<div class="form-group">
+		<ul style="list-style: none;padding-left: 0px;margin-left: 0;">
+			<li ng-repeat="a in apps">
+				<a href="#/{{a.name}}">{{a.name}}</a>
+				<span class="glyphicon glyphicon-trash"  style="cursor: pointer; float: right;" ng-click="delete(a)" title="删除应用"/>
+			</li>
+		</ul>
+		<div style="clear:both" />
+		<div ng-include="'/static/info.html'"></div>
+	</div>
 </div>

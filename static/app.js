@@ -1,31 +1,75 @@
 var XBase = angular.module('XBase', ['ngRoute', 'ngCookies', 'ui.bootstrap']);
 
-var resturl = '/rest/';
+var resturl = '/api/';
+
+Array.prototype.removeat = function(dx){
+	if(isNaN(dx)||dx>this.length){return false;}
+	this.splice(dx,1);
+	return this;
+};
+
+Array.prototype.remove = function(obj){
+	var dx = this.indexOf(obj);
+	if(dx>=0){
+		this.removeat(dx);
+	}
+	return this;
+}
 
 // , ['ngRoute', 'ui.bootstrap']
 
 
-function initScope($scope, $http){
+function initScope($scope, $http, $timeout){
 	$scope.closeAlert = function(){
 		$scope.info = null;
 	};
-	$scope.ajax = function(url ,data, succ, error){
+	$scope.ajax = function(req, succ, error){
+		var defreq = {
+			method:'GET',
+		}
+		if(typeof(req)=="string"){
+			req = {
+				url: req
+			};
+		}
+		if(typeof(req.method) == "undefined" && typeof(req.data) != "undefined"){
+			req.method = "POST";
+		}
+		for(var mn in defreq){
+			if(typeof(req[mn])=="undefined"){
+				req[mn] = defreq[mn];
+			}
+		}
+		var ajax = null;
+		switch(req.method){
+			case 'GET':
+			ajax = $http.get(req.url);
+			break;
+			case 'POST':
+			ajax = $http.post(req.url, req.data);
+			break;
+			case 'DELETE':
+			ajax = $http.delete(req.url, req.data);
+			break;
+		}
 		$scope.doing = true;
 		$scope.info = null;
-		var ajax = data? $http.post(url, data): $http.get(url);
 		ajax.success(function(res){
 			$scope.doing = false;
 			if(res.succ || typeof(res.succ)=="undefined"){
 				if(succ)
 					succ(res);
-			else if(error)
-				error(res.msg);
 			}
 			else{
-				$scope.info = {
-					type:'error',
-					msg:res.msg
-				};
+				if(typeof(res.msg)!="undefined"){
+					$scope.info = {
+						type:'error',
+						msg:res.msg
+					};
+				}
+				if(error){
+					error(res);
+				}
 			}
 		})
 		.error(function(){
@@ -37,17 +81,33 @@ function initScope($scope, $http){
 			if(error)
 				error('网络错误');
 		});
-	};
+
+		$scope.delayinfo = function(info, delay, cbk){
+			if(typeof(delay) == "function"){
+				cbk = delay;
+				delay = 0;
+			}
+			if(!delay){
+				delay = 500;
+			}
+			$scope.info = info;
+			$timeout(function(){
+				$scope.info = null;
+				if(cbk)
+					cbk();
+			}, delay);
+		}
+	}
 }
 
-function Index($scope, $http, $location, $cookies){
-	initScope($scope, $http);
+function Index($scope, $http, $location, $cookies, $timeout){
+	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
 	if(!$cookies.token){
 		$location.path('/.login');
 	}
 	else{
-		$scope.ajax(resturl, null,
+		$scope.ajax(resturl,
 			function(res){
 				$scope.apps = res.apps;
 			},
@@ -61,14 +121,71 @@ function Index($scope, $http, $location, $cookies){
 		delete $cookies.token;
 		$location.path('/.login');
 	};
+
+	$scope.add = function(){
+		var name = prompt("输入应用名称","app");
+		var has = false;
+		if(!name)
+			return;
+		$.each($scope.apps, function(index, val) {
+			if(val.name == name){
+				has = true;
+			}
+		});
+		if(has){
+			$scope.info = {
+				type:'error',
+				msg:'已经存在该应用'
+			};
+			return;
+		}
+		if(name.length>0 && name!='.' && name!='/'){
+			$scope.ajax(
+				{
+					url:resturl+name,
+					method:"POST"
+				},
+				function(res){
+					$scope.apps.push(res.app);
+					$scope.delayinfo("添加成功!", function(){
+						$location.path('/'+res.app.name);
+					});
+				}
+			);
+		}
+		else{
+			$scope.info = {
+				type:'error',
+				msg:'应用名称不对'
+			};
+		}
+	}
+
+	$scope.delete = function(app){
+		if(confirm("确定删除["+app+"]")){
+			$scope.ajax(
+				{
+					url:resturl+app.name+"/",
+					method:"DELETE"
+				},
+				function(){
+					$scope.info = "删除成功";
+					$scope.apps.remove(app);
+					$timeout(function(){
+						$scope.info = null;
+					}, 500);
+				}
+			);
+		}
+	}
 }
 
-function Domain($scope, $http, $location, $cookies, $routeParams){
-	initScope($scope, $http);
+function Domain($scope, $http, $location, $cookies, $routeParams, $timeout){
+	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
 	$scope.domain = $routeParams.domain;
 
-	$scope.ajax(resturl+$scope.domain+"/", null, 
+	$scope.ajax(resturl+$scope.domain+"/", 
 		function(res){
 			var keys = [];
 			for(var k in res){
@@ -84,43 +201,73 @@ function Domain($scope, $http, $location, $cookies, $routeParams){
 			};
 		}
 	);
-	$scope.delete = function(domain, key){
-		console.log(domain + " " + key);
+	$scope.add = function(){
+		$location.path($scope.domain+'/.key');
+	}
+	$scope.delete = function(kv){
+		if(confirm("确定删除["+kv.key+"]")){
+			$scope.ajax(
+				{
+					url:resturl+$scope.domain+"/"+kv.key,
+					method:"DELETE"
+				},
+				function(){
+					$scope.info = "删除成功";
+					$scope.keyvals.remove(kv);
+					$timeout(function(){
+						$scope.info = null;
+					}, 500);
+				}
+			);
+		}
 	};
 }
 
 function KeyVal($scope, $http, $location, $cookies, $routeParams, $timeout){
-	initScope($scope, $http);
+	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
 	$scope.domain = $routeParams.domain;
 	$scope.key = $routeParams.key;
+	
 	$scope.keyvalurl = function(){
 		return resturl+$scope.domain+"/"+$scope.key;
 	};
-	$scope.ajax(resturl+$scope.domain+"/"+$scope.key, null, 
-		function(res){
-			$scope.value = res;
-		}
-	);
+
+	if($scope.key==".key"){
+		$scope.key = "";
+	}
+	else{
+		$scope.ajax(resturl+$scope.domain+"/"+$scope.key, 
+			function(res){
+				$scope.value = res;
+			}
+		);
+	}
 
 	$scope.save = function(){
-		$scope.ajax($scope.keyvalurl(), $scope.value, function(){
-			$scope.info = "保存成功";
-			$timeout(function(){
-				var u = '/'+$scope.domain+"/"+$scope.key;
-				if($location.path() != u){
-					$location.path(u);
-				}
-				else{
-					$scope.info = null;
-				}
-			}, 500);
-		});
+		$scope.ajax(
+			{
+				url:$scope.keyvalurl(),
+				data:$scope.value,
+			},
+			function(){
+				$scope.info = "保存成功";
+				$timeout(function(){
+					var u = '/'+$scope.domain+"/"+$scope.key;
+					if($location.path() != u){
+						$location.path(u);
+					}
+					else{
+						$scope.info = null;
+					}
+				}, 500);
+			}
+		);
 	};
 }
 
 function Login($scope, $http, $location, $cookies, $timeout){
-	initScope($scope, $http);
+	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
 	if($cookies.token){
 		// $timeout(function(){
@@ -128,9 +275,13 @@ function Login($scope, $http, $location, $cookies, $timeout){
 		// }, 500);
 	}
 	$scope.login = function(){
-		$scope.ajax('/.login', {
-			username: $scope.username,
-			password: $scope.password
+		$scope.ajax(
+			{
+				url:'/.login',
+				data:{
+					username: $scope.username,
+					password: $scope.password
+				},
 			},
 			function(res){
 				$scope.info = "登录成功";
@@ -143,19 +294,23 @@ function Login($scope, $http, $location, $cookies, $timeout){
 }
 
 function Sign($scope, $http, $location, $timeout){
-	initScope($scope, $http);
+	initScope($scope, $http, $timeout);
 	$scope.$location = $location;
-	if ($scope.password != $scope.repassword){
-			$scope.info = {
-				type:'error',
-				msg:'两次密码不相等'
-			}
-		return false;
-	}
 	$scope.sigin = function(){
-		$scope.ajax('/.sigin', {
-			username: $scope.username,
-			password: $scope.password
+		if ($scope.password != $scope.repassword){
+				$scope.info = {
+					type:'error',
+					msg:'两次密码不相等'
+				}
+			return false;
+		}
+		
+		$scope.ajax({
+				url:'/.sigin',
+				data:{
+				username: $scope.username,
+				password: $scope.password
+				}
 			},
 			function(res){
 				$scope.info = "注册成功";
