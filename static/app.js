@@ -253,16 +253,13 @@ function KeyVal($scope, $http, $location, $cookies, $routeParams, $timeout){
 				data:$scope.value,
 			},
 			function(){
-				$scope.info = "保存成功";
-				$timeout(function(){
+				$scope.delayinfo("保存成功",function(){
 					var u = '/'+$scope.domain+"/"+$scope.key;
 					if($location.path() != u){
-						$location.path(u);
+						// $location.path(u);
+						$location.path('/'+$scope.domain);
 					}
-					else{
-						$scope.info = null;
-					}
-				}, 500);
+				})
 			}
 		);
 	};
