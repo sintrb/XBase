@@ -146,6 +146,8 @@ class UserDBHandler(AuthHandler):
         AuthHandler.initialize(self)
         # Allow Cross Domain AJAX
         self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+        
     def resjson(self, res):
         self.write(json.dumps(res))
     def resnoauth(self):
@@ -160,7 +162,8 @@ class UserDBHandler(AuthHandler):
         return '%s@%s'%(self.get_userkey(), app)
     def get_storagekey(self, app, key):
         return '%s$%s'%(self.get_appkey(app), key)
-
+    def options(self, *args, **kvargs):
+        pass
     def get(self, app, split=None, key=None):
         if app:
             app = app.encode('utf-8')
