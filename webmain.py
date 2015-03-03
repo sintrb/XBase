@@ -185,7 +185,8 @@ class UserDBHandler(AuthHandler):
                     prefix = self.get_storagekey(app,'')
                     l = len(prefix)
                     d = dict([(k[l:], v) for k,v in self.kv.get_by_prefix(prefix) if len(k)>l])
-                    self.write(json.dumps(d))
+                    s = json.dumps(d)
+                    self.write(s)
             else:
                 # get app list
                 self.resjson({
@@ -216,7 +217,11 @@ class UserDBHandler(AuthHandler):
                     key = str(int(time.time()*1000))
                 if key:
                     skey = self.get_storagekey(app, key)
-                    self.kv.set(skey, self.request.body)
+                    # print type(self.request.body)
+                    val = self.request.body
+                    if isinstance(val, unicode):
+                        val = val.encode('utf-8')
+                    self.kv.set(skey, val)
                     # print skey
                     self.resjson({
                         'succ':True,
