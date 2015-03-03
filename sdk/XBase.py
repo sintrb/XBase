@@ -7,7 +7,7 @@ from HttpHolder import HttpHolder
 import json
 
 class XBase(object):
-	def __init__(self, username="nobody", password="nobody", app="app", apiurl="http://xbase.sinaapp.com/api/"):
+	def __init__(self, username="nobody", password="nobody", app="app", apiurl="http://127.0.0.1:9999/api/"):
 		super(XBase, self).__init__()
 		self.username = username
 		self.password = password
@@ -31,10 +31,20 @@ class XBase(object):
 		'''
 		设置单个记录
 		'''
+		if isinstance(value, unicode):
+			value = value.encode('utf-8')
+		elif not isinstance(value, str):
+			value = str(value)
+		if key!=None and not isinstance(key, str):
+			key = str(key)
 		h = self.__gethttp__()
-		url = '%s/%s'%(self.baseurl, key)
+		if key:
+			url = '%s/%s'%(self.baseurl, key)
+		else:
+			url = self.baseurl
 		h.open_html(url, data=value)
-
+	def add(self, value):
+		self.__setitem__(None, value)
 	def items(self):
 		'''
 		获取所有记录元组
@@ -45,8 +55,8 @@ class XBase(object):
 
 if __name__ == '__main__':
 	xb = XBase()
-	xb['t'] = '中国'
-	print xb['t']
-	print xb.items()
+	xb['t'] = u'中国'
+	# print xb['t']
+	# print xb.items()
 
 
