@@ -14,7 +14,7 @@ def md5(v):
 
 def uuid():
     return md5(str(time.time()))
-
+maxcount = 100000
 class BaseHandler(tornado.web.RequestHandler):
     def __init__(self, application, request, **kwargs):
         tornado.web.RequestHandler.__init__(self, application, request, **kwargs)
@@ -134,7 +134,7 @@ class IndexHandler(BaseHandler):
 class StcHandler(BaseHandler):
     def get(self, username=''):
         info = self.kv.get_info()
-        info['keys'] = ['%s: %s'%(k,self.kv.get(k)) for k in self.kv.getkeys_by_prefix(username.encode('utf-8'))]
+        info['keys'] = ['%s: %s'%(k,self.kv.get(k)) for k in self.kv.getkeys_by_prefix(username.encode('utf-8'), limit=maxcount)]
         self.write(json.dumps(info))
         # self.write(r'<pre>%s</pre>'%cgi.escape(str(self.kv.__module__)))
         # self.write('d')
@@ -257,7 +257,7 @@ class UserDBHandler(AuthHandler):
                 else:
                     # 删除app域下全部
                     sk = self.get_storagekey(app, '')
-                    for k in self.kv.getkeys_by_prefix(sk):
+                    for k in self.kv.getkeys_by_prefix(sk, limit=maxcount):
                         self.kv.delete(k)
                         count += 1
                     ak = self.get_appkey(app)
@@ -268,7 +268,7 @@ class UserDBHandler(AuthHandler):
             else:
                 # 删除全部app
                 uk = self.get_appkey('')
-                for k in self.kv.getkeys_by_prefix(uk):
+                for k in self.kv.getkeys_by_prefix(uk, limit=maxcount):
                     self.kv.delete(k)
                     count += 1
                 self.userkvd['apps'] = []
